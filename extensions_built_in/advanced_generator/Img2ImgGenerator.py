@@ -133,6 +133,7 @@ class Img2ImgGenerator(BaseExtensionProcess):
             num_batches = len(self.data_loader)
             pbar = tqdm(total=num_batches, desc="Generating images")
             seed = self.generate_config.seed
+            print(f"Iniside img2img generator, will save in: {self.output_folder}")
             # load images from datasets, use tqdm
             for i, batch in enumerate(self.data_loader):
                 batch: DataLoaderBatchDTO = batch

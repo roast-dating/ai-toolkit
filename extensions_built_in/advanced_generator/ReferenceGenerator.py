@@ -143,6 +143,7 @@ class ReferenceGenerator(BaseExtensionProcess):
         pbar = tqdm(total=num_batches, desc="Generating images")
         seed = self.generate_config.seed
         # load images from datasets, use tqdm
+        print(f"Iniside Ref generator, will save in: {self.output_folder}")
         for i, batch in enumerate(self.data_loader):
             batch: DataLoaderBatchDTO = batch
 

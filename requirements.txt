@@ -2,6 +2,7 @@ torch
 torchvision
 safetensors
 git+https://github.com/huggingface/diffusers.git
+git+https://github.com/tencent-ailab/IP-Adapter.git
 transformers
 lycoris-lora==1.8.3
 flatten_json

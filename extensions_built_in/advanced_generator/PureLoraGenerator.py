@@ -40,21 +40,34 @@ class PureLoraGenerator(BaseExtensionProcess):
             model_config=self.model_config,
             dtype=self.dtype,
         )
+        
+    def load_model(self):
+        self.sd.load_model()
+        self.sd.unet.eval()
+        self.sd.unet.to(self.device_torch)
+        if isinstance(self.sd.text_encoder, list):
+            for te in self.sd.text_encoder:
+                te.eval()
+                te.to(self.device_torch)
+        else:
+            self.sd.text_encoder.eval()
+            self.sd.text_encoder.to(self.device_torch)
 
     def run(self):
         super().run()
         print("Loading model...")
         with torch.no_grad():
-            self.sd.load_model()
-            self.sd.unet.eval()
-            self.sd.unet.to(self.device_torch)
-            if isinstance(self.sd.text_encoder, list):
-                for te in self.sd.text_encoder:
-                    te.eval()
-                    te.to(self.device_torch)
-            else:
-                self.sd.text_encoder.eval()
-                self.sd.to(self.device_torch)
+            self.load_model()
+        #     self.sd.load_model()
+        #     self.sd.unet.eval()
+        #     self.sd.unet.to(self.device_torch)
+        #     if isinstance(self.sd.text_encoder, list):
+        #         for te in self.sd.text_encoder:
+        #             te.eval()
+        #             te.to(self.device_torch)
+        #     else:
+        #         self.sd.text_encoder.eval()
+        #         self.sd.to(self.device_torch)
 
             print(f"Converting to LoRM UNet")
             # replace the unet with LoRMUnet
@@ -75,6 +88,7 @@ class PureLoraGenerator(BaseExtensionProcess):
 
                 filename = f"[time]_[count].{self.generate_config.ext}"
                 output_path = os.path.join(sample_folder, filename)
+                print(f"saving image {i} to {output_path}")
                 prompt = sample_config.prompts[i]
                 extra_args = {}
                 gen_img_config_list.append(GenerateImageConfig(

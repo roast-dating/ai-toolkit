@@ -118,7 +118,7 @@ class GenerateProcess(BaseProcess):
                 if self.generate_config.size_list is not None:
                     # randomly select a size
                     width, height = random.choice(self.generate_config.size_list)
-
+                print(f"Generating image with prompt: {prompt}, save in {self.output_folder}")
                 prompt_image_configs.append(GenerateImageConfig(
                     prompt=prompt,
                     prompt_2=self.generate_config.prompt_2,

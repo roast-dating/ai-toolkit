@@ -5,9 +5,13 @@ from toolkit.config import get_config
 
 def get_job(
         config_path: Union[str, dict, OrderedDict],
+        config = None,
         name=None
 ):
-    config = get_config(config_path, name)
+    if config:
+        pass
+    else:
+        config = get_config(config_path, name)
     if not config['job']:
         raise ValueError('config file is invalid. Missing "job" key')
 
