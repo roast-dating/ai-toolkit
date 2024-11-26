@@ -15,6 +15,7 @@ from fastapi import Request
 import shutil
 import yaml
 from utils import utils
+# from rdbc.db.mongodb.mongo_engine import MongoDBEngine
 # Load the .env file if it exists
 load_dotenv()
 
@@ -32,7 +33,7 @@ os.environ['DISABLE_TELEMETRY'] = 'YES'
 # define modal app
 image = (
     # modal.Image.debian_slim(python_version="3.11")
-    modal.Image.from_registry("nvidia/cuda:12.4.0-devel-ubuntu22.04", add_python="3.11")
+    modal.Image.from_registry("nvidia/cuda:12.4.0-devel-ubuntu22.04", add_python="3.9")
     .env({"HF_TOKEN": os.environ.get("HF_TOKEN"),
           "HF_HUB_ENABLE_HF_TRANSFER": "1",
           "AWS_DEFAULT_REGION": "eu-west-1",
@@ -76,7 +77,7 @@ image = (
         "peft",
         "git+https://github.com/tencent-ailab/IP-Adapter.git",
         "fastapi",
-        "pydantic"
+        "pydantic",
     )
 )
 
@@ -86,6 +87,12 @@ image.pip_install("git+https://github.com/tencent-ailab/IP-Adapter.git")
 # mount for the entire ai-toolkit directory
 # example: "/Users/username/ai-toolkit" is the local directory, "/root/ai-toolkit" is the remote directory
 code_mount = modal.Mount.from_local_dir("/Users/benoitbaylin/Documents/code/ai-toolkit", remote_path="/root/ai-toolkit")
+
+image.run_commands(
+    "cd roast-db-common",
+    "pip install -e ."
+)
+
 secret = modal.Secret.from_dict({"AWS_ACCESS_KEY_ID": os.environ.get('AWS_ACCESS_KEY_ID'),
                                  "AWS_SECRET_ACCESS_KEY": os.environ.get('AWS_SECRET_ACCESS_KEY'),
                                  "AWS_REGION": os.environ.get('AWS_REGION')})
@@ -176,14 +183,17 @@ async def train_lora(request: Request):
     gpu="A100", # gpu="H100"
     timeout=7200,  # 2 hours, increase or decrease if needed
     image=image,
-    secrets=[modal.Secret.from_name("roast-aws-secret"),modal.Secret.from_name("backend-keys")],    volumes={MOUNT_DIR: model_volume, MOUNT_PHOTOSHOOT_BUCKET_DIR: modal.CloudBucketMount(
+    secrets=[modal.Secret.from_name("roast-aws-secret"),
+             modal.Secret.from_name("backend-keys")],
+            volumes={MOUNT_DIR: model_volume, MOUNT_PHOTOSHOOT_BUCKET_DIR: modal.CloudBucketMount(
             bucket_name="roast-photoshoot-ai",
             secret=secret,
             read_only=True
         )},
 )
 def train_user(user_id: str, model_id: str, photoshoot_id: str):
-    
+    engine = MongoDBEngine(uri=os.environ.get("MONGO_URI"))
+
     s3_base_folder = os.path.join(MOUNT_PHOTOSHOOT_BUCKET_DIR, "{}/models/{}/preprocessed/")
     s3_base_captions_folder = os.path.join(MOUNT_PHOTOSHOOT_BUCKET_DIR,"{}/models/{}/captions/")
     # Copy data from both s3_base_folder and s3_base_captions_folder to dataset_path
@@ -216,10 +226,14 @@ def train_user(user_id: str, model_id: str, photoshoot_id: str):
     # Update the config with the specific model_id
     config['config']['name'] = model_id
     config['config']['process'][0]['datasets'][0]['folder_path'] = dataset_path
+
+    photoshoot = engine.get_photoshoot(id=photoshoot_id)
+    photoshoot.update(**{"status_flux": "training"})
     utils.put_photoshoot(photoshoot_id, {"status_flux": "training"})
     main_function([config_path], config, False)
-    utils.put_photoshoot(photoshoot_id, {"status_flux": "to_shoot"})
-    
+    # utils.put_photoshoot(photoshoot_id, {"status_flux": "to_shoot"})
+    photoshoot.update(**{"status_flux": "to_shoot"})
+
 
 
 @app.function(

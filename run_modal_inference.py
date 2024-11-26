@@ -167,47 +167,6 @@ def run_inference(config, user_id: str, model_id: str, photoshoot_id: str):
     utils.put_photoshoot(photoshoot_id, {"status_flux": "to_email"})
 
 @app.function(
-    # request a GPU with at least 24GB VRAM
-    # more about modal GPU's: https://modal.com/docs/guide/gpu
-    gpu="A100", # gpu="H100"
-    # more about modal timeouts: https://modal.com/docs/guide/timeouts
-    timeout=7200  # 2 hours, increase or decrease if needed
-)
-def main(config_file_list_str: str, recover: bool = False, name: str = None):
-    
-    config_file_list = config_file_list_str.split(",")
-    jobs_completed = 0
-    jobs_failed = 0
-    
-    # os.makedirs("/root/ai-toolkit/models/boring-reality", exist_ok=True)
-    # snapshot_download(repo_id="Baba3710/boring-reality", local_dir="/root/ai-toolkit/models/boring-reality")
-
-    print(f"Running {len(config_file_list)} job{'' if len(config_file_list) == 1 else 's'}")
-
-    for config_file in config_file_list:
-        print(f"A config file: {config_file}")
-        try:
-            if not os.path.isfile(config_file):
-                config_file = f"config/{config_file}.yaml"
-            
-            print(f"Going to open config file: {config_file}")
-            with open(config_file, 'r') as file:
-                config = yaml.safe_load(file)
-            
-            print(f"Running inference for config: {config_file}")
-            run_inference(config, user_id=user_id, model_id=model_id)
-            
-            jobs_completed += 1
-        except Exception as e:
-            print(f"Error running job: {e}")
-            jobs_failed += 1
-            if not recover:
-                break
-
-    print(f"Jobs completed: {jobs_completed}")
-    print(f"Jobs failed: {jobs_failed}")
-
-@app.function(
     gpu="A100",  # gpu="H100"
     timeout=7200,  # 2 hours, increase or decrease if needed
     image=image,
