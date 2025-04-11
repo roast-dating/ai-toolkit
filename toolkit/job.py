@@ -15,6 +15,8 @@ def get_job(
     if not config['job']:
         raise ValueError('config file is invalid. Missing "job" key')
 
+
+    print(f"Inside get_job: {config}")
     job = config['job']
     if job == 'extract':
         from jobs import ExtractJob
